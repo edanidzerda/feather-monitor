@@ -1,0 +1,6 @@
+backup/*
+secrets.py
+lib/*
+.idea/*
+settings.toml
+__pycache__/*

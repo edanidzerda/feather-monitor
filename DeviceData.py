@@ -4,8 +4,14 @@ import microcontroller
 from adafruit_lc709203f import LC709203F
 import json
 
+
 # https://docs.influxdata.com/influxdb/cloud/write-data/developer-tools/line-protocol/
 # https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/#timestamp
+
+# How much area to preserve at the beginning of sleep_memory
+# Use this to store other fields like timestamp of last NTP sync
+saved_data_starting_index = 50
+
 
 def c_to_f(temp_c):
     return temp_c * (9 / 5) + 32
@@ -67,12 +73,17 @@ class DeviceData:
     def influx_data(self):
         print("get_influx_data: self=", self.__dict__)
         data = format_line(measurement="sensor", field="humidity", value=self.humidity, timestamp=self.start_time)
-        data += format_line(measurement="sensor", field="temperature", value=c_to_f(self.temperature), timestamp=self.start_time)
+        data += format_line(measurement="sensor", field="temperature", value=c_to_f(self.temperature),
+                            timestamp=self.start_time)
         data += format_line(measurement="sensor", field="pressure", value=self.pressure, timestamp=self.start_time)
-        data += format_line(measurement="battery", field="percent", value=self.battery_percent, timestamp=self.start_time)
-        data += format_line(measurement="battery", field="voltage", value=self.battery_voltage, timestamp=self.start_time)
-        data += format_line(measurement="device", field="measurementTime", value=self.battery_voltage, timestamp=self.start_time)
-        data += format_line(measurement="device", field="cpu_temperature", value=self.cpu_temperature_f, timestamp=self.start_time)
+        data += format_line(measurement="battery", field="percent", value=self.battery_percent,
+                            timestamp=self.start_time)
+        data += format_line(measurement="battery", field="voltage", value=self.battery_voltage,
+                            timestamp=self.start_time)
+        data += format_line(measurement="device", field="measurementTime", value=self.battery_voltage,
+                            timestamp=self.start_time)
+        data += format_line(measurement="device", field="cpu_temperature", value=self.cpu_temperature_f,
+                            timestamp=self.start_time)
         #
         #
         # data = "sensor,location=\"{0}\" humidity={1}\n".format(secrets['location'], self.humidity)
@@ -108,10 +119,12 @@ def json_decoder(dct):
         data.start_time = dct['start_time']
     return data
 
-
+##
+### # https://learn.adafruit.com/deep-sleep-with-circuitpython/sleep-memory
+##
 def get_saved_data(memory: bytearray) -> list[DeviceData]:
     saved_data = []
-    idx = 0
+    idx = saved_data_starting_index
     obj_len = memory[idx]
     while obj_len != 0:
         idx += 1
@@ -124,7 +137,7 @@ def get_saved_data(memory: bytearray) -> list[DeviceData]:
 
 
 def add_saved_data(memory: bytearray, data: DeviceData):
-    idx = 0
+    idx = saved_data_starting_index
     obj_len = memory[idx]
     print("obj_len = {}".format(obj_len))
     while obj_len != 0:
@@ -138,7 +151,7 @@ def add_saved_data(memory: bytearray, data: DeviceData):
 
 
 def clear_saved_data(memory: bytearray):
-    idx = 0
+    idx = saved_data_starting_index
     while idx < len(memory):
         memory[idx] = 0
         idx += 1
